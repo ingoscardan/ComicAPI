@@ -1,6 +1,7 @@
 
 using ComicAPI.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace ComicAPI.Controllers;
 
@@ -8,6 +9,11 @@ namespace ComicAPI.Controllers;
 [ApiController]
 public class SeriesController: ControllerBase
 {
+    private readonly DatabaseContext _dataContext;
+    public SeriesController(DatabaseContext dataContext)
+    {
+        _dataContext = dataContext;
+    }
     private static List<Series> _series = new List<Series>()
     {
         new Series()
@@ -20,15 +26,15 @@ public class SeriesController: ControllerBase
     };
 
     [HttpGet]
-    public List<Series> Get()
+    public async Task<List<Series>> Get()
     {
-        return _series;
+        return await _dataContext.Series.ToListAsync();
     }
 
     [HttpGet("{id:guid}")]
-    public ActionResult<List<Series>> Get(Guid id)
+    public async Task<ActionResult<List<Series>>> Get(Guid id)
     {
-        var series = _series.Find(s => s.Id.Equals(id));
+        var series = await _dataContext.Series.FindAsync(id);
         if (series == null)
         {
             return new NotFoundResult();
@@ -37,17 +43,18 @@ public class SeriesController: ControllerBase
     }
 
     [HttpPost]
-    public List<Series> Add(Series series)
+    public async Task<ActionResult<List<Series>>> Add(Series series)
     {
         series.Id = Guid.NewGuid();
-        _series.Add(series);
-        return _series;
+        _dataContext.Series.Add(series);
+        await _dataContext.SaveChangesAsync();
+        return Ok(await _dataContext.Series.ToListAsync());
     }
 
     [HttpPut]
-    public ActionResult<List<Series>> Update(Series series)
+    public async Task<ActionResult<List<Series>>> Update(Series series)
     {
-        var serie = _series.Find(s => s.Id.Equals(series.Id));
+        var serie = await _dataContext.Series.FindAsync(series.Id);
         if (serie == null)
         {
             return new NotFoundResult();
@@ -55,20 +62,22 @@ public class SeriesController: ControllerBase
 
         serie.Name = series.Name;
         serie.Year = series.Year;
-        return Ok(_series);
+        await _dataContext.SaveChangesAsync();
+        return Ok(await _dataContext.Series.ToListAsync());
     }
 
     [HttpDelete("{id:guid}")]
-    public ActionResult<List<Series>> Delete(Guid id)
+    public async Task<ActionResult<List<Series>>> Delete(Guid id)
     {
-        var series = _series.Find(s => s.Id.Equals(id));
+        var series = await _dataContext.Series.FindAsync(id);
         if (series == null)
         {
             return new NotFoundResult();
         }
 
-        _series.Remove(series);
-        return Ok(_series);
+        _dataContext.Series.Remove(series);
+        await _dataContext.SaveChangesAsync();
+        return Ok(await _dataContext.Series.ToListAsync());
     }
 
 }
